@@ -983,7 +983,7 @@ const Analytics = ({ apiUrl, setLoading }) => {
 export default function App() {
   const [currentView, setCurrentView] = useState("dashboard");
   const [loading, setLoading] = useState(false);
-  const [apiUrl] = useState("http://localhost:5000/api");
+  const [apiUrl] = useState("https://industrial-engine.vercel.app");
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
