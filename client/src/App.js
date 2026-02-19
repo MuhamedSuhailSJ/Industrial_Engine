@@ -1,28 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./App.css";
 
 // Component Imports
 const Dashboard = ({ apiUrl, setLoading }) => {
   const [summary, setSummary] = useState(null);
-  const [error, setError] = useState(null);
+  // FIX: Removed unused 'error' state variable
 
-  useEffect(() => {
-    fetchSummary();
-  }, []);
-
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     setLoading(true);
     try {
-      // FIX: Changed endpoint to match server's dashboard endpoint
       const response = await fetch(`${apiUrl}/dashboard-stats`);
       const data = await response.json();
       setSummary(data);
     } catch (err) {
-      setError("Failed to fetch summary");
+      console.error("Failed to fetch summary", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, setLoading]); // FIX: Added dependencies
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]); // FIX: Added missing dependency
 
   if (!summary) return <div className="view-content">Loading...</div>;
 
@@ -118,11 +117,7 @@ const IndustriesView = ({ apiUrl, setLoading }) => {
   });
   const [showForm, setShowForm] = useState(false);
 
-  useEffect(() => {
-    fetchIndustries();
-  }, []);
-
-  const fetchIndustries = async () => {
+  const fetchIndustries = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/industries`);
@@ -133,7 +128,11 @@ const IndustriesView = ({ apiUrl, setLoading }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, setLoading]);
+
+  useEffect(() => {
+    fetchIndustries();
+  }, [fetchIndustries]); // FIX: Added missing dependency
 
   const handleAddIndustry = async (e) => {
     e.preventDefault();
@@ -284,15 +283,9 @@ const MaterialsView = ({ apiUrl, setLoading }) => {
   const [showForm, setShowForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState("available");
 
-  useEffect(() => {
-    fetchMaterials();
-    fetchIndustries();
-  }, [filterStatus]);
-
-  const fetchMaterials = async () => {
+  const fetchMaterials = useCallback(async () => {
     setLoading(true);
     try {
-      // FIX: Server now handles ?status=
       const response = await fetch(
         `${apiUrl}/materials?status=${filterStatus}`,
       );
@@ -303,9 +296,9 @@ const MaterialsView = ({ apiUrl, setLoading }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, filterStatus, setLoading]);
 
-  const fetchIndustries = async () => {
+  const fetchIndustries = useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/industries`);
       const data = await response.json();
@@ -313,16 +306,19 @@ const MaterialsView = ({ apiUrl, setLoading }) => {
     } catch (error) {
       console.error("Error fetching industries:", error);
     }
-  };
+  }, [apiUrl]);
+
+  useEffect(() => {
+    fetchMaterials();
+    fetchIndustries();
+  }, [fetchMaterials, fetchIndustries]); // FIX: Added missing dependencies
 
   const handleAddMaterial = async (e) => {
     e.preventDefault();
     try {
-      // FIX: Map quantity_available to quantity for server schema
       const payload = {
         ...newMaterial,
         quantity: parseFloat(newMaterial.quantity_available),
-        // Remove the old key so it doesn't cause confusion
         quantity_available: undefined,
       };
 
@@ -471,7 +467,6 @@ const MaterialsView = ({ apiUrl, setLoading }) => {
               <div className="material-details">
                 <span>Source: {material.industry_name}</span>
                 <span className="material-quantity">
-                  {/* FIX: Server uses 'quantity' */}
                   {material.quantity} {material.unit}
                 </span>
               </div>
@@ -493,14 +488,9 @@ const MaterialsView = ({ apiUrl, setLoading }) => {
 const SymbiosisNetwork = ({ apiUrl, setLoading }) => {
   const [network, setNetwork] = useState(null);
 
-  useEffect(() => {
-    fetchNetwork();
-  }, []);
-
-  const fetchNetwork = async () => {
+  const fetchNetwork = useCallback(async () => {
     setLoading(true);
     try {
-      // FIX: Server now has this endpoint
       const response = await fetch(`${apiUrl}/symbiosis/network`);
       const data = await response.json();
       setNetwork(data);
@@ -509,7 +499,11 @@ const SymbiosisNetwork = ({ apiUrl, setLoading }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, setLoading]);
+
+  useEffect(() => {
+    fetchNetwork();
+  }, [fetchNetwork]); // FIX: Added missing dependency
 
   return (
     <div className="view-container">
@@ -595,16 +589,9 @@ const CompatibilityAssessment = ({ apiUrl, setLoading }) => {
   });
   const [showForm, setShowForm] = useState(false);
 
-  useEffect(() => {
-    fetchAssessments();
-    fetchMaterials();
-    fetchIndustries();
-  }, []);
-
-  const fetchAssessments = async () => {
+  const fetchAssessments = useCallback(async () => {
     setLoading(true);
     try {
-      // FIX: Changed endpoint from /compatibility/assessments to /reuse-opportunities
       const response = await fetch(`${apiUrl}/reuse-opportunities`);
       const data = await response.json();
       setAssessments(data);
@@ -613,9 +600,9 @@ const CompatibilityAssessment = ({ apiUrl, setLoading }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, setLoading]);
 
-  const fetchMaterials = async () => {
+  const fetchMaterials = useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/materials?status=available`);
       const data = await response.json();
@@ -623,9 +610,9 @@ const CompatibilityAssessment = ({ apiUrl, setLoading }) => {
     } catch (error) {
       console.error("Error fetching materials:", error);
     }
-  };
+  }, [apiUrl]);
 
-  const fetchIndustries = async () => {
+  const fetchIndustries = useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/industries`);
       const data = await response.json();
@@ -633,12 +620,17 @@ const CompatibilityAssessment = ({ apiUrl, setLoading }) => {
     } catch (error) {
       console.error("Error fetching industries:", error);
     }
-  };
+  }, [apiUrl]);
+
+  useEffect(() => {
+    fetchAssessments();
+    fetchMaterials();
+    fetchIndustries();
+  }, [fetchAssessments, fetchMaterials, fetchIndustries]); // FIX: Added dependencies
 
   const handleAssess = async (e) => {
     e.preventDefault();
     try {
-      // FIX: Changed endpoint from /compatibility/assess to /reuse-opportunities
       const response = await fetch(`${apiUrl}/reuse-opportunities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -789,7 +781,6 @@ const CompatibilityAssessment = ({ apiUrl, setLoading }) => {
           assessments.map((assessment) => (
             <div key={assessment.id} className="assessment-card">
               <div className="assessment-header">
-                {/* FIX: Server aliased this as target_industry_name */}
                 <h4>
                   {assessment.material_name} → {assessment.target_industry_name}
                 </h4>
@@ -833,14 +824,9 @@ const TransactionsView = ({ apiUrl, setLoading }) => {
   const [transactions, setTransactions] = useState([]);
   const [filterStatus, setFilterStatus] = useState("pending");
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [filterStatus]);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      // FIX: Added status query param
       const response = await fetch(
         `${apiUrl}/transactions?status=${filterStatus}`,
       );
@@ -851,7 +837,11 @@ const TransactionsView = ({ apiUrl, setLoading }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, filterStatus, setLoading]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]); // FIX: Added missing dependency
 
   return (
     <div className="view-container">
@@ -908,14 +898,9 @@ const TransactionsView = ({ apiUrl, setLoading }) => {
 const Analytics = ({ apiUrl, setLoading }) => {
   const [metrics, setMetrics] = useState([]);
 
-  useEffect(() => {
-    fetchMetrics();
-  }, []);
-
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     setLoading(true);
     try {
-      // FIX: Server now has this endpoint
       const response = await fetch(`${apiUrl}/analytics/circulation`);
       const data = await response.json();
       setMetrics(data);
@@ -924,7 +909,11 @@ const Analytics = ({ apiUrl, setLoading }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiUrl, setLoading]);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]); // FIX: Added missing dependency
 
   return (
     <div className="view-container">
@@ -983,7 +972,7 @@ const Analytics = ({ apiUrl, setLoading }) => {
 export default function App() {
   const [currentView, setCurrentView] = useState("dashboard");
   const [loading, setLoading] = useState(false);
-  const [apiUrl] = useState("https://industrial-engine.vercel.app");
+  const [apiUrl] = useState("https://industrial-engine.vercel.app/api");
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
